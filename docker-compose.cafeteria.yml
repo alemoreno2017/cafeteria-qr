@@ -1,0 +1,54 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cafeteria-postgres
+    environment:
+      POSTGRES_DB: cafeteria_qr
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - cafeteria_postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./cafeteria-backend
+    container_name: cafeteria-backend
+    environment:
+      PORT: 3333
+      FRONTEND_URL: http://192.168.0.113:4173,http://127.0.0.1:4173,http://localhost:4173
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/cafeteria_qr
+      PERSISTENCE_DRIVER: postgres
+      STORE_NAME: Cafe Boutique Premium
+      PUBLIC_MENU_BASE_URL: http://192.168.0.113:4173/#/mesa
+      ADMIN_EMAIL: admin@cafeboutique.com
+      ADMIN_PASSWORD: 123456
+      JWT_SECRET: troque-esta-chave-em-producao
+      ENABLE_PRINTER: "false"
+      PRINTER_HOST: 192.168.0.50
+      PRINTER_PORT: 9100
+    ports:
+      - '3333:3333'
+    volumes:
+      - cafeteria_uploads:/app/uploads
+    depends_on:
+      - postgres
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://192.168.0.113:3333
+        VITE_SOCKET_URL: http://192.168.0.113:3333
+    container_name: cafeteria-frontend
+    ports:
+      - '4173:4173'
+    depends_on:
+      - backend
+
+volumes:
+  cafeteria_postgres_data:
+  cafeteria_uploads:
